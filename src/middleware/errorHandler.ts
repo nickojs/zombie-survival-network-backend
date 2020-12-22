@@ -1,17 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
-import HttpError from '../helpers/httpError';
+import { Middleware, ExpressErrorMiddlewareInterface } from 'routing-controllers';
 
-function errorMiddleware(
-  error: HttpError, request: Request, response: Response, next: NextFunction
-) {
-  const status = error.code || 500;
-  const message = error.message || 'Something went wrong';
-  response
-    .status(status)
-    .send({
-      status,
-      message
-    });
+@Middleware({ type: 'after' })
+export class CustomErrorHandler implements ExpressErrorMiddlewareInterface {
+  error(error: any, request: Request, response: Response, next: NextFunction) {
+    response.json(error);
+    next();
+  }
 }
-
-export default errorMiddleware;
