@@ -1,17 +1,20 @@
-import { Get, HttpError, JsonController } from 'routing-controllers';
+import {
+  Body, Get, JsonController, Post
+} from 'routing-controllers';
 import { getRepository } from 'typeorm';
 import { User } from '../entity/User';
 
 @JsonController('/user')
 export class UserControler {
+  private userRepository = getRepository(User)
+
   @Get('/')
-  getUsers() {
-    const userRepository = getRepository(User);
-    return userRepository.find();
+  async getUsers() {
+    await this.userRepository.find();
   }
 
-  @Get('/error')
-  throwError() {
-    throw new HttpError(404, 'testing error');
+  @Post('/')
+  async createUser(@Body() user: User) {
+    await this.userRepository.save(user);
   }
 }
