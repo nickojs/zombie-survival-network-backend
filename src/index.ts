@@ -3,7 +3,8 @@ import 'reflect-metadata';
 import { createExpressServer } from 'routing-controllers';
 import { createConnection } from 'typeorm';
 import { UserControler } from './controllers/UserController';
-import { CustomErrorHandler } from './middleware/errorHandler';
+import { TypeORMErrorHandler } from './middleware/typeormHandler';
+import { GlobalErrorHandler } from './middleware/globalErrorHandler';
 
 createConnection()
   .then(() => {
@@ -11,7 +12,7 @@ createConnection()
       cors: true,
       defaultErrorHandler: false,
       controllers: [UserControler],
-      middlewares: [CustomErrorHandler]
+      middlewares: [TypeORMErrorHandler, GlobalErrorHandler]
     });
     server.listen(3000, () => {
       console.log('server started at port 3000');
