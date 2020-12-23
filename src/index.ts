@@ -2,7 +2,8 @@
 import 'reflect-metadata';
 import { createExpressServer } from 'routing-controllers';
 import { createConnection } from 'typeorm';
-import { UserControler } from './controllers/UserController';
+import { UserController } from './controllers/UserController';
+import { AuthController } from './controllers/AuthController';
 import { TypeORMErrorHandler } from './middleware/typeormHandler';
 import { GlobalErrorHandler } from './middleware/globalErrorHandler';
 
@@ -11,7 +12,7 @@ createConnection()
     const server = createExpressServer({
       cors: true,
       defaultErrorHandler: false,
-      controllers: [UserControler],
+      controllers: [UserController, AuthController],
       middlewares: [TypeORMErrorHandler, GlobalErrorHandler]
     });
     server.listen(3000, () => {

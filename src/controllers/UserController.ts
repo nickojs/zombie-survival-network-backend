@@ -1,5 +1,5 @@
 import {
-  Body, Get, HttpCode, JsonController, Post, Res
+  Body, Get, JsonController, Post, Res
 } from 'routing-controllers';
 import { validate, ValidationError } from 'class-validator';
 import { getRepository } from 'typeorm';
@@ -8,7 +8,7 @@ import * as bcrypt from 'bcrypt';
 import { User } from '../entity/User';
 
 @JsonController('/user')
-export class UserControler {
+export class UserController {
   private userRepository = getRepository(User)
 
   @Get('/')
