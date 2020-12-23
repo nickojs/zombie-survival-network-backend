@@ -1,5 +1,5 @@
 import {
-  Body, Get, JsonController, Post, Res
+  Body, Get, HttpCode, JsonController, Post, Res
 } from 'routing-controllers';
 import { validate, ValidationError } from 'class-validator';
 import { getRepository } from 'typeorm';
@@ -45,9 +45,4 @@ export class UserControler {
   }
 
   private hashPassword = async (pw: string) => bcrypt.hash(pw, 12);
-
-  private comparePassword = async (
-    passwordToCompare: string,
-    existingPassword: string
-  ) => bcrypt.compare(passwordToCompare, existingPassword)
 }
