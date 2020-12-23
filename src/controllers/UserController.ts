@@ -13,7 +13,7 @@ export class UserController {
 
   @Get('/')
   async getUsers() {
-    await this.userRepository.find();
+    return this.userRepository.find();
   }
 
   @Post('/')
