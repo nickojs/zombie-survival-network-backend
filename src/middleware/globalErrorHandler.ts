@@ -12,7 +12,7 @@ export class GlobalErrorHandler implements ExpressErrorMiddlewareInterface {
     if (queryFailedGuard(error)) {
       switch (error.code) {
         case 'ER_DUP_ENTRY':
-          throw new HttpError(409, 'Duplicated values');
+          return response.status(409).json({ message: 'Duplicated values' });
         default:
           break;
       }
