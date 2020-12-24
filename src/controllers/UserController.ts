@@ -1,5 +1,5 @@
 import {
-  Body, Get, JsonController, Post, Res
+  Body, Get, HttpError, JsonController, Post, Res
 } from 'routing-controllers';
 import { validate, ValidationError } from 'class-validator';
 import { getRepository } from 'typeorm';
@@ -25,9 +25,7 @@ export class UserController {
 
     const errors = await validate(createUser);
     if (errors.length > 0) {
-      return res.status(422).json({
-        errors: this.parseErrors(errors)
-      });
+      throw new HttpError(422, this.parseErrors(errors));
     }
 
     const hashedPw = await this.hashPassword(createUser.password);
@@ -38,10 +36,11 @@ export class UserController {
   }
 
   private parseErrors(errors: ValidationError[]) {
-    return errors.map((e) => ({
-      property: e.property,
-      constraints: e.constraints
-    }));
+    const errs = errors.map((e) => (
+      Object.keys(e.constraints).map((cons) => e.constraints[cons])
+    ));
+
+    return `Validation errors, please verify: ${errs.join(', ')}`;
   }
 
   private hashPassword = async (pw: string) => bcrypt.hash(pw, 12);
