@@ -7,8 +7,7 @@ import * as jwt from 'jsonwebtoken';
 import { User } from '../entity/User';
 
 interface SignInProps {
-  email?: string;
-  username?: string;
+  identifier: string;
   password: string;
 }
 
@@ -18,12 +17,12 @@ export class AuthController {
 
   @Post('/signin')
   async signIn(@Body() user: SignInProps) {
-    const { email, username, password } = user;
+    const { identifier, password } = user;
 
     const findUser = await this.userRepository.findOne({
       where: [
-        { email },
-        { username }
+        { email: identifier },
+        { username: identifier }
       ]
     });
 
