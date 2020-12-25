@@ -23,7 +23,8 @@ export class AuthController {
       where: [
         { email: identifier },
         { username: identifier }
-      ]
+      ],
+      relations: ['profile']
     });
 
     if (!findUser || findUser === undefined) throw new HttpError(404, 'Could not find user');
@@ -31,7 +32,11 @@ export class AuthController {
 
     if (!checkPw) throw new HttpError(401, 'Invalid credentials');
 
-    return { token: this.generateJwt(findUser) };
+    return (
+      {
+        token: this.generateJwt(findUser),
+        hasProfile: findUser.profile
+      });
   }
 
   private comparePassword = async (
