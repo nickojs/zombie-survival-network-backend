@@ -27,6 +27,7 @@
         }
     },
     "rules": {
+        "no-shadow": "off",
         "class-methods-use-this": "off",
         "no-unused-vars": "off",
         "no-return-assign": "off",
