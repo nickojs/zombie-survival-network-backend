@@ -32,11 +32,7 @@ export class AuthController {
 
     if (!checkPw) throw new HttpError(401, 'Invalid credentials');
 
-    return (
-      {
-        token: this.generateJwt(findUser),
-        hasProfile: findUser.profile
-      });
+    return { token: this.generateJwt(findUser) };
   }
 
   private comparePassword = async (
@@ -47,6 +43,7 @@ export class AuthController {
   private generateJwt = (user: User) => jwt.sign({
     userId: user.id,
     email: user.email,
-    username: user.username
+    username: user.username,
+    profile: user.profile
   }, process.env.secret)
 }
