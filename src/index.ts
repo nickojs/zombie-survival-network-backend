@@ -1,7 +1,8 @@
 /* eslint-disable no-console */
 import 'reflect-metadata';
-import { createExpressServer } from 'routing-controllers';
+import { Action, createExpressServer } from 'routing-controllers';
 import { createConnection } from 'typeorm';
+import * as jwt from 'jsonwebtoken';
 import { UserController } from './controllers/UserController';
 import { AuthController } from './controllers/AuthController';
 import { GlobalErrorHandler } from './middleware/globalErrorHandler';
@@ -9,6 +10,11 @@ import { GlobalErrorHandler } from './middleware/globalErrorHandler';
 createConnection()
   .then(() => {
     const server = createExpressServer({
+      currentUserChecker: async (action: Action) => {
+        const token = action.request.headers.auth;
+        const tokenData = jwt.decode(token, process.env.secret);
+        return tokenData.userId;
+      },
       cors: true,
       defaultErrorHandler: false,
       controllers: [UserController, AuthController],
