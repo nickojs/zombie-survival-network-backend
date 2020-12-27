@@ -15,8 +15,14 @@ export class UserController {
   private userProfileRepository = getRepository(UserProfile);
 
   @Get('/')
-  async getUsers() {
-    return this.userRepository.find();
+  async getUsers(
+    @CurrentUser() userId: string
+  ) {
+    if (!userId) throw new HttpError(401, 'Needs to be authenticated to do this');
+    return this.userRepository.find({
+      select: ['id', 'profile'],
+      relations: ['profile']
+    });
   }
 
   @Post('/')
