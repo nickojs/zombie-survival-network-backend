@@ -12,6 +12,7 @@ createConnection()
     const server = createExpressServer({
       currentUserChecker: async (action: Action) => {
         const token = action.request.headers.auth;
+        if (!token) return null;
         const tokenData = jwt.decode(token, process.env.secret);
         return tokenData.userId;
       },
