@@ -1,9 +1,10 @@
 import {
-  Body, CurrentUser, Get, HttpError, JsonController, Post, Put, Res, UseBefore
+  Body, CurrentUser, Get, HttpError, JsonController, Param, Post, Put, QueryParam, Res, UseBefore
 } from 'routing-controllers';
 import { getRepository } from 'typeorm';
 import { Response } from 'express';
 import * as bodyParser from 'body-parser';
+import { Query } from 'typeorm/driver/Query';
 import { User } from '../entity/User';
 import { UserProfile } from '../entity/Profile';
 import { validateUserBody, validateUserProfileBody } from '../middleware/validate';
@@ -23,6 +24,20 @@ export class UserController {
       select: ['id', 'profile'],
       relations: ['profile']
     });
+  }
+
+  @Get('/:id')
+  async getSingleUser(
+    @CurrentUser() userId: string,
+    @Param('id') id: string
+  ) {
+    if (!userId) throw new HttpError(401, 'Needs to be authenticated to do this');
+    const user = await this.userRepository.findOne({
+      select: ['id', 'username', 'profile'],
+      relations: ['profile'],
+      where: { id }
+    });
+    return user;
   }
 
   @Post('/')
