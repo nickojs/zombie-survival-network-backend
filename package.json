@@ -10,6 +10,7 @@
     "migration:generate": "ts-node ./node_modules/typeorm/cli.js migration:generate"
   },
   "devDependencies": {
+    "@types/faker": "^5.1.5",
     "cz-conventional-changelog": "3.3.0",
     "eslint": "^7.16.0",
     "ts-node-dev": "^1.1.1",
@@ -26,6 +27,7 @@
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-plugin-import": "^2.22.1",
     "express": "^4.17.1",
+    "faker": "^5.1.0",
     "helmet": "^4.2.0",
     "jsonwebtoken": "^8.5.1",
     "mysql": "^2.18.1",
