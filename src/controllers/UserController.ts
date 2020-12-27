@@ -1,11 +1,12 @@
 import {
-  Body, CurrentUser, Get, HttpError, JsonController, Post, Put, Res
+  Body, CurrentUser, Get, HttpError, JsonController, Post, Put, Res, UseBefore
 } from 'routing-controllers';
-import { validate, ValidationError } from 'class-validator';
 import { getRepository } from 'typeorm';
 import { Response } from 'express';
+import * as bodyParser from 'body-parser';
 import { User } from '../entity/User';
 import { UserProfile } from '../entity/Profile';
+import { validateUserBody, validateUserProfileBody } from '../middleware/validate';
 
 @JsonController('/user')
 export class UserController {
@@ -25,22 +26,18 @@ export class UserController {
   }
 
   @Post('/')
+  @UseBefore(bodyParser.json(), validateUserBody)
   async createUser(
     @Body() user: Record<string, any>,
     @Res() res: Response
   ) {
     const createUser = this.userRepository.create(user);
-
-    const errors = await validate(createUser);
-    if (errors.length > 0) {
-      throw new HttpError(422, this.parseErrors(errors));
-    }
-
     await this.userRepository.save(createUser);
     return res.status(201).json({ message: 'Created user' });
   }
 
   @Put('/profile')
+  @UseBefore(bodyParser.json(), validateUserProfileBody)
   async editUserProfile(
     @Body() data: Record<string, any>,
     @CurrentUser() userId: string
@@ -50,14 +47,7 @@ export class UserController {
       relations: ['profile']
     });
 
-    const userProfile = this.userProfileRepository.create({
-      ...data
-    });
-
-    const errors = await validate(userProfile);
-    if (errors.length > 0) {
-      throw new HttpError(422, this.parseErrors(errors));
-    }
+    const userProfile = this.userProfileRepository.create({ ...data });
 
     const { profile } = user || { };
     // updates existing profile
@@ -78,13 +68,5 @@ export class UserController {
       message: 'Created profile for this user',
       profile: userProfile
     };
-  }
-
-  private parseErrors(errors: ValidationError[]) {
-    const errs = errors.map((e) => (
-      Object.keys(e.constraints).map((cons) => e.constraints[cons])
-    ));
-
-    return `Validation errors, please verify: ${errs.join(', ')}`;
   }
 }
