@@ -4,7 +4,6 @@ import {
 import { validate, ValidationError } from 'class-validator';
 import { getRepository } from 'typeorm';
 import { Response } from 'express';
-import * as bcrypt from 'bcrypt';
 import { User } from '../entity/User';
 import { UserProfile } from '../entity/Profile';
 
@@ -37,10 +36,7 @@ export class UserController {
       throw new HttpError(422, this.parseErrors(errors));
     }
 
-    const hashedPw = await this.hashPassword(createUser.password);
-    createUser.password = hashedPw;
     await this.userRepository.save(createUser);
-
     return res.status(201).json({ message: 'Created user' });
   }
 
@@ -91,6 +87,4 @@ export class UserController {
 
     return `Validation errors, please verify: ${errs.join(', ')}`;
   }
-
-  private hashPassword = async (pw: string) => bcrypt.hash(pw, 12);
 }

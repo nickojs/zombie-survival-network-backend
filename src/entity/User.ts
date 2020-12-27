@@ -1,7 +1,9 @@
 import { IsEmail, Length, MinLength } from 'class-validator';
 import {
+  BeforeInsert,
   Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn
 } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { UserProfile } from './Profile';
 
 @Entity()
@@ -28,4 +30,10 @@ export class User {
   @OneToOne(() => UserProfile)
   @JoinColumn()
   profile: UserProfile;
+
+  @BeforeInsert()
+  async hashPassword() {
+    const hashedPw = await bcrypt.hash(this.password, 12);
+    this.password = hashedPw;
+  }
 }
