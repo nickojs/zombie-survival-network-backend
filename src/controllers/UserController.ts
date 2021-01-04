@@ -7,13 +7,16 @@ import * as bodyParser from 'body-parser';
 import { Query } from 'typeorm/driver/Query';
 import { User } from '../entity/User';
 import { UserProfile } from '../entity/Profile';
-import { validateUserBody, validateUserProfileBody } from '../middleware/validate';
+import { validateUserBody, validateUserLocation, validateUserProfileBody } from '../middleware/validate';
+import { UserLocation } from '../entity/Location';
 
 @JsonController('/user')
 export class UserController {
   private userRepository = getRepository(User)
 
   private userProfileRepository = getRepository(UserProfile);
+
+  private userLocationRepository = getRepository(UserLocation);
 
   @Get('/')
   async getUsers(
@@ -82,6 +85,27 @@ export class UserController {
     return {
       message: 'Created profile for this user',
       profile: userProfile
+    };
+  }
+
+  @Put('/location')
+  @UseBefore(bodyParser.json(), validateUserLocation)
+  async updateUserLocation(
+    @Body() body: Record<string, any>,
+    @CurrentUser() user: User
+  ) {
+    const userLocation = this.userLocationRepository.create(body);
+    const { location } = user || { };
+
+    const updatedLocation = { ...location, ...userLocation };
+    await this.userLocationRepository.save(updatedLocation);
+
+    user.location = updatedLocation;
+    await this.userRepository.save(user);
+
+    return {
+      message: 'Updated location',
+      location: updatedLocation
     };
   }
 }
