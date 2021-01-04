@@ -5,6 +5,7 @@ import {
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { UserProfile } from './Profile';
+import { UserLocation } from './Location';
 
 @Entity()
 export class User {
@@ -30,6 +31,10 @@ export class User {
   @OneToOne(() => UserProfile)
   @JoinColumn()
   profile: UserProfile;
+
+  @OneToOne(() => UserLocation)
+  @JoinColumn()
+  location: UserLocation;
 
   @BeforeInsert()
   async hashPassword() {
