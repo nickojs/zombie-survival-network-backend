@@ -15,7 +15,10 @@ createConnection()
         const token = action.request.headers.auth;
         if (!token) return null;
         const tokenData = jwt.decode(token, process.env.secret);
-        return getManager().findOne(User, tokenData.userId);
+        return getManager().findOne(User, {
+          where: { id: tokenData.userId },
+          relations: ['profile', 'location']
+        });
       },
       cors: true,
       defaultErrorHandler: false,
