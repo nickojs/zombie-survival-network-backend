@@ -1,10 +1,8 @@
 import {
-  Body, CurrentUser, Get, HttpError, JsonController, Param, Post, Put, QueryParam, Res, UseBefore
+  Body, CurrentUser, Get, HttpError, JsonController, Param, Post, Put, UseBefore
 } from 'routing-controllers';
-import { getRepository } from 'typeorm';
-import { Response } from 'express';
+import { getRepository, Not } from 'typeorm';
 import * as bodyParser from 'body-parser';
-import { Query } from 'typeorm/driver/Query';
 import { User } from '../entity/User';
 import { UserProfile } from '../entity/Profile';
 import { validateUserBody, validateUserLocation, validateUserProfileBody } from '../middleware/validate';
@@ -25,7 +23,8 @@ export class UserController {
     if (!user) throw new HttpError(401, 'Needs to be authenticated to do this');
     return this.userRepository.find({
       select: ['id', 'profile'],
-      relations: ['profile']
+      relations: ['profile'],
+      where: { id: Not(user.id) }
     });
   }
 
@@ -36,7 +35,7 @@ export class UserController {
   ) {
     if (!user) throw new HttpError(401, 'Needs to be authenticated to do this');
     const fetchUser = await this.userRepository.findOne({
-      select: ['id', 'username', 'profile'],
+      select: ['id', 'username', 'email', 'profile'],
       relations: ['profile'],
       where: { id }
     });
@@ -45,13 +44,10 @@ export class UserController {
 
   @Post('/')
   @UseBefore(bodyParser.json(), validateUserBody)
-  async createUser(
-    @Body() user: Record<string, any>,
-    @Res() res: Response
-  ) {
+  async createUser(@Body() user: Record<string, any>) {
     const createUser = this.userRepository.create(user);
     await this.userRepository.save(createUser);
-    return res.status(201).json({ message: 'Created user' });
+    return { message: 'Created user' };
   }
 
   @Put('/profile')
@@ -60,41 +56,28 @@ export class UserController {
     @Body() data: Record<string, any>,
     @CurrentUser() user: User
   ) {
-    const userToEdit = await this.userRepository.findOne({
-      where: { id: user.id },
-      relations: ['profile']
-    });
+    const userProfile = this.userProfileRepository.create(data);
+    const { profile } = user || { };
 
-    const userProfile = this.userProfileRepository.create({ ...data });
+    const updatedProfile = { ...profile, ...userProfile };
+    await this.userProfileRepository.save(updatedProfile);
 
-    const { profile } = userToEdit || { };
-    // updates existing profile
-    if (profile) {
-      const updatedProfile = { ...profile, ...userProfile };
-      await this.userProfileRepository.save(updatedProfile);
-      return {
-        message: 'Updated profile',
-        profile: updatedProfile
-      };
-    }
-
-    await this.userProfileRepository.save(userProfile);
-    userToEdit.profile = userProfile;
-    await this.userRepository.save(userToEdit);
+    user.profile = updatedProfile;
+    await this.userRepository.save(user);
 
     return {
-      message: 'Created profile for this user',
-      profile: userProfile
+      message: 'Updated profile',
+      profile: updatedProfile
     };
   }
 
   @Put('/location')
   @UseBefore(bodyParser.json(), validateUserLocation)
   async updateUserLocation(
-    @Body() body: Record<string, any>,
+    @Body() data: Record<string, any>,
     @CurrentUser() user: User
   ) {
-    const userLocation = this.userLocationRepository.create(body);
+    const userLocation = this.userLocationRepository.create(data);
     const { location } = user || { };
 
     const updatedLocation = { ...location, ...userLocation };
