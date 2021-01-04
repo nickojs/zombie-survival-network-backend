@@ -1,11 +1,12 @@
 /* eslint-disable no-console */
 import 'reflect-metadata';
 import { Action, createExpressServer } from 'routing-controllers';
-import { createConnection } from 'typeorm';
+import { createConnection, getManager } from 'typeorm';
 import * as jwt from 'jsonwebtoken';
 import { UserController } from './controllers/UserController';
 import { AuthController } from './controllers/AuthController';
 import { GlobalErrorHandler } from './middleware/globalErrorHandler';
+import { User } from './entity/User';
 
 createConnection()
   .then(() => {
@@ -14,7 +15,7 @@ createConnection()
         const token = action.request.headers.auth;
         if (!token) return null;
         const tokenData = jwt.decode(token, process.env.secret);
-        return tokenData.userId;
+        return getManager().findOne(User, tokenData.userId);
       },
       cors: true,
       defaultErrorHandler: false,

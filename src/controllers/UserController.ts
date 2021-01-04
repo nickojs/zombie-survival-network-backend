@@ -17,9 +17,9 @@ export class UserController {
 
   @Get('/')
   async getUsers(
-    @CurrentUser() userId: string
+    @CurrentUser() user: User
   ) {
-    if (!userId) throw new HttpError(401, 'Needs to be authenticated to do this');
+    if (!user) throw new HttpError(401, 'Needs to be authenticated to do this');
     return this.userRepository.find({
       select: ['id', 'profile'],
       relations: ['profile']
@@ -28,16 +28,16 @@ export class UserController {
 
   @Get('/:id')
   async getSingleUser(
-    @CurrentUser() userId: string,
+    @CurrentUser() user: User,
     @Param('id') id: string
   ) {
-    if (!userId) throw new HttpError(401, 'Needs to be authenticated to do this');
-    const user = await this.userRepository.findOne({
+    if (!user) throw new HttpError(401, 'Needs to be authenticated to do this');
+    const fetchUser = await this.userRepository.findOne({
       select: ['id', 'username', 'profile'],
       relations: ['profile'],
       where: { id }
     });
-    return user;
+    return fetchUser;
   }
 
   @Post('/')
@@ -55,16 +55,16 @@ export class UserController {
   @UseBefore(bodyParser.json(), validateUserProfileBody)
   async editUserProfile(
     @Body() data: Record<string, any>,
-    @CurrentUser() userId: string
+    @CurrentUser() user: User
   ) {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
+    const userToEdit = await this.userRepository.findOne({
+      where: { id: user.id },
       relations: ['profile']
     });
 
     const userProfile = this.userProfileRepository.create({ ...data });
 
-    const { profile } = user || { };
+    const { profile } = userToEdit || { };
     // updates existing profile
     if (profile) {
       const updatedProfile = { ...profile, ...userProfile };
@@ -76,8 +76,8 @@ export class UserController {
     }
 
     await this.userProfileRepository.save(userProfile);
-    user.profile = userProfile;
-    await this.userRepository.save(user);
+    userToEdit.profile = userProfile;
+    await this.userRepository.save(userToEdit);
 
     return {
       message: 'Created profile for this user',
