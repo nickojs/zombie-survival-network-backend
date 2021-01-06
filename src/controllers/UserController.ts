@@ -18,9 +18,8 @@ export class UserController {
 
   @Get('/')
   async getUsers(
-    @CurrentUser() user: User
+    @CurrentUser({ required: true }) user: User
   ) {
-    if (!user) throw new HttpError(401, 'Needs to be authenticated to do this');
     return this.userRepository.find({
       select: ['id', 'profile'],
       relations: ['profile'],
@@ -30,10 +29,9 @@ export class UserController {
 
   @Get('/:id')
   async getSingleUser(
-    @CurrentUser() user: User,
+    @CurrentUser({ required: true }) user: User,
     @Param('id') id: string
   ) {
-    if (!user) throw new HttpError(401, 'Needs to be authenticated to do this');
     const fetchUser = await this.userRepository.findOne({
       select: ['id', 'username', 'email', 'profile'],
       relations: ['profile'],
@@ -54,7 +52,7 @@ export class UserController {
   @UseBefore(bodyParser.json(), validateUserProfileBody)
   async editUserProfile(
     @Body() data: Record<string, any>,
-    @CurrentUser() user: User
+    @CurrentUser({ required: true }) user: User
   ) {
     const userProfile = this.userProfileRepository.create(data);
     const { profile } = user || { };
@@ -75,7 +73,7 @@ export class UserController {
   @UseBefore(bodyParser.json(), validateUserLocation)
   async updateUserLocation(
     @Body() data: Record<string, any>,
-    @CurrentUser() user: User
+    @CurrentUser({ required: true }) user: User
   ) {
     const userLocation = this.userLocationRepository.create(data);
     const { location } = user || { };
