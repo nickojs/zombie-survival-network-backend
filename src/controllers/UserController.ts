@@ -25,7 +25,7 @@ export class UserController {
   ) {
     return this.userRepository.find({
       select: ['id', 'profile'],
-      relations: ['profile'],
+      relations: ['profile', 'flags'],
       where: { id: Not(user.id) }
     });
   }
