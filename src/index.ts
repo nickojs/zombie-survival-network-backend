@@ -14,9 +14,9 @@ createConnection()
       currentUserChecker: async (action: Action) => {
         const token = action.request.headers.auth;
         if (!token) return null;
-        const tokenData = jwt.decode(token, process.env.secret);
+        const decoded = await jwt.verify(token, process.env.secret);
         return getManager().findOne(User, {
-          where: { id: tokenData.userId },
+          where: { id: decoded.userId },
           relations: ['profile', 'location']
         });
       },
