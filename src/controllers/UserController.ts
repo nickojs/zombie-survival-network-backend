@@ -1,5 +1,5 @@
 import {
-  Body, CurrentUser, Get, JsonController, Param, Post, Put, UseBefore
+  Body, CurrentUser, Get, HttpError, JsonController, Param, Post, Put, UseBefore
 } from 'routing-controllers';
 import { getRepository, Not } from 'typeorm';
 import * as bodyParser from 'body-parser';
@@ -7,6 +7,7 @@ import { User } from '../entity/User';
 import { UserProfile } from '../entity/Profile';
 import { validateUserBody, validateUserLocation, validateUserProfileBody } from '../middleware/validate';
 import { UserLocation } from '../entity/Location';
+import { Flag } from '../entity/Flag';
 
 @JsonController('/user')
 export class UserController {
@@ -15,6 +16,8 @@ export class UserController {
   private userProfileRepository = getRepository(UserProfile);
 
   private userLocationRepository = getRepository(UserLocation);
+
+  private flagRepository = getRepository(Flag);
 
   @Get('/')
   async getUsers(
@@ -34,7 +37,7 @@ export class UserController {
   ) {
     const fetchUser = await this.userRepository.findOne({
       select: ['id', 'username', 'email', 'profile'],
-      relations: ['profile'],
+      relations: ['profile', 'location', 'flags'],
       where: { id }
     });
     return fetchUser;
@@ -101,5 +104,28 @@ export class UserController {
       message: 'Updated location',
       location: updatedLocation
     };
+  }
+
+  @Post('/flag/:id')
+  async flagUser(
+    @CurrentUser({ required: true }) user: User,
+    @Param('id') id: string
+  ) {
+    const flagUser = await this.userRepository.findOne({
+      where: { id },
+      relations: ['flags', 'flags.flaggedBy']
+    });
+    const { flags } = flagUser;
+
+    const isItFlagged = flags.filter((flag) => flag.flaggedBy.id === user.id);
+    if (isItFlagged.length > 0) throw new HttpError(403, 'You already flagged this user');
+
+    const flag = this.flagRepository.create({ flaggedBy: user, user: flagUser });
+    await this.flagRepository.save(flag);
+
+    flagUser.flags = [...flagUser.flags, flag];
+    await this.userRepository.save(flagUser);
+
+    return { message: `flagged user ${flagUser.id}` };
   }
 }
