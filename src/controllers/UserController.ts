@@ -37,9 +37,12 @@ export class UserController {
   ) {
     const fetchUser = await this.userRepository.findOne({
       select: ['id', 'username', 'email', 'profile'],
-      relations: ['profile', 'location', 'flags'],
+      relations: ['profile', 'location', 'flags', 'flags.flaggedBy'],
       where: { id }
     });
+
+    // removes user password from flaggedBy relation
+    fetchUser.flags.forEach((flag) => (flag.flaggedBy as unknown) = flag.flaggedBy.id);
     return fetchUser;
   }
 
