@@ -1,5 +1,5 @@
 import {
-  Body, CurrentUser, Get, HttpError, JsonController, Param, Post, Put, UseBefore
+  Body, CurrentUser, Get, JsonController, Param, Post, Put, UseBefore
 } from 'routing-controllers';
 import { getRepository, Not } from 'typeorm';
 import * as bodyParser from 'body-parser';
@@ -38,6 +38,19 @@ export class UserController {
       where: { id }
     });
     return fetchUser;
+  }
+
+  @Post('/self') // for some unknown reason, this does not work as a Get request (on insomnia at least)
+  async getCurrentUser(
+    @CurrentUser({ required: true }) user: User
+  ) {
+    const currentUser = await this.userRepository.findOne({
+      relations: ['profile', 'location'],
+      where: { id: user.id }
+    });
+    const { password, ...rest } = currentUser;
+
+    return rest;
   }
 
   @Post('/')
