@@ -1,11 +1,12 @@
 import { IsEmail, Length, MinLength } from 'class-validator';
 import {
   BeforeInsert,
-  Column, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn
+  Column, Entity, JoinColumn, JoinTable, ManyToMany, OneToMany, OneToOne, PrimaryGeneratedColumn
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { UserProfile } from './Profile';
 import { UserLocation } from './Location';
+import { Flag } from './Flag';
 
 @Entity()
 export class User {
@@ -35,6 +36,10 @@ export class User {
   @OneToOne(() => UserLocation)
   @JoinColumn()
   location: UserLocation;
+
+  @OneToMany(() => Flag, (flag) => [flag.user, flag.flaggedBy])
+  @JoinTable({ name: 'user_flags' })
+  flags: Flag[];
 
   @BeforeInsert()
   async hashPassword() {
