@@ -1,7 +1,7 @@
 import { IsEmail, Length, MinLength } from 'class-validator';
 import {
   BeforeInsert,
-  Column, Entity, JoinColumn, JoinTable, ManyToMany, OneToMany, OneToOne, PrimaryGeneratedColumn
+  Column, Entity, JoinColumn, JoinTable, OneToMany, OneToOne, PrimaryGeneratedColumn
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { UserProfile } from './Profile';
@@ -37,7 +37,7 @@ export class User {
   @JoinColumn()
   location: UserLocation;
 
-  @OneToMany(() => Flag, (flag) => [flag.user, flag.flaggedBy])
+  @OneToMany(() => Flag, (flag) => flag.user)
   @JoinTable({ name: 'user_flags' })
   flags: Flag[];
 
