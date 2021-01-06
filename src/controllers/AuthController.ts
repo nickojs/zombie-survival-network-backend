@@ -16,15 +16,15 @@ export class AuthController {
   private userRepository = getRepository(User)
 
   @Post('/signin')
-  async signIn(@Body() user: SignInProps) {
-    const { identifier, password } = user;
+  async signIn(@Body() data: SignInProps) {
+    const { identifier, password } = data;
 
     const findUser = await this.userRepository.findOne({
       where: [
         { email: identifier },
         { username: identifier }
       ],
-      relations: ['profile']
+      relations: ['profile', 'location']
     });
 
     if (!findUser || findUser === undefined) throw new HttpError(404, 'Could not find user');
@@ -40,10 +40,5 @@ export class AuthController {
     existingPassword: string
   ) => bcrypt.compare(passwordToCompare, existingPassword)
 
-  private generateJwt = (user: User) => jwt.sign({
-    userId: user.id,
-    email: user.email,
-    username: user.username,
-    profile: user.profile
-  }, process.env.secret)
+  private generateJwt = (user: User) => jwt.sign({ userId: user.id }, process.env.secret, { expiresIn: '1h' })
 }
