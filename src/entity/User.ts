@@ -7,6 +7,7 @@ import * as bcrypt from 'bcrypt';
 import { UserProfile } from './Profile';
 import { UserLocation } from './Location';
 import { Flag } from './Flag';
+import { ContainerPosition } from './ContainerPosition';
 
 @Entity()
 export class User {
@@ -40,6 +41,10 @@ export class User {
   @OneToMany(() => Flag, (flag) => flag.user)
   @JoinTable({ name: 'user_flags' })
   flags: Flag[];
+
+  @OneToOne(() => ContainerPosition)
+  @JoinColumn()
+  containers: ContainerPosition;
 
   @BeforeInsert()
   async hashPassword() {
