@@ -5,9 +5,12 @@ import { getRepository, Not } from 'typeorm';
 import * as bodyParser from 'body-parser';
 import { User } from '../entity/User';
 import { UserProfile } from '../entity/Profile';
-import { validateUserBody, validateUserLocation, validateUserProfileBody } from '../middleware/validate';
+import {
+  validateContainerData, validateUserBody, validateUserLocation, validateUserProfileBody
+} from '../middleware/validate';
 import { UserLocation } from '../entity/Location';
 import { Flag } from '../entity/Flag';
+import { ContainerPosition } from '../entity/ContainerPosition';
 
 @JsonController('/user')
 export class UserController {
@@ -19,6 +22,8 @@ export class UserController {
 
   private flagRepository = getRepository(Flag);
 
+  private containerRepository = getRepository(ContainerPosition);
+
   @Get('/')
   async getUsers(
     @CurrentUser({ required: true }) user: User
@@ -28,6 +33,25 @@ export class UserController {
       relations: ['profile', 'flags'],
       where: { id: Not(user.id) }
     });
+  }
+
+  @Get('/self')
+  async getCurrentUser(
+    @CurrentUser({ required: true }) user: User
+  ) {
+    const currentUser = await this.userRepository.findOne({
+      relations: ['profile', 'location'],
+      where: { id: user.id }
+    });
+    const { password, ...rest } = currentUser;
+
+    return rest;
+  }
+
+  @Get('/containers')
+  async getContainerPos(@CurrentUser({ required: true }) user: User) {
+    const { containers } = user;
+    return containers;
   }
 
   @Get('/:id')
@@ -44,19 +68,6 @@ export class UserController {
     // removes user password from flaggedBy relation
     fetchUser.flags.forEach((flag) => (flag.flaggedBy as unknown) = flag.flaggedBy.id);
     return fetchUser;
-  }
-
-  @Post('/self') // for some unknown reason, this does not work as a Get request (on insomnia at least)
-  async getCurrentUser(
-    @CurrentUser({ required: true }) user: User
-  ) {
-    const currentUser = await this.userRepository.findOne({
-      relations: ['profile', 'location'],
-      where: { id: user.id }
-    });
-    const { password, ...rest } = currentUser;
-
-    return rest;
   }
 
   @Post('/')
@@ -106,6 +117,27 @@ export class UserController {
     return {
       message: 'Updated location',
       location: updatedLocation
+    };
+  }
+
+  @Put('/containers')
+  @UseBefore(bodyParser.json(), validateContainerData)
+  async updateContainerPos(
+    @Body() data: Record<string, any>,
+    @CurrentUser({ required: true }) user: User
+  ) {
+    const containerPos = this.containerRepository.create(data);
+    const { containers } = user || { };
+
+    const updatedContainers = { ...containers, ...containerPos };
+    await this.containerRepository.save(updatedContainers);
+
+    user.containers = updatedContainers;
+    await this.userRepository.save(user);
+
+    return {
+      message: 'Updated container position',
+      containers: containerPos
     };
   }
 
