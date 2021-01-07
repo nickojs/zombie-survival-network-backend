@@ -6,6 +6,7 @@ import { validate, ValidationError } from 'class-validator';
 import { User } from '../entity/User';
 import { UserProfile } from '../entity/Profile';
 import { UserLocation } from '../entity/Location';
+import { ContainerPosition } from '../entity/ContainerPosition';
 
 const parseErrors = (errors: ValidationError[]) => {
   const errs = errors.map((e) => (
@@ -54,6 +55,21 @@ export const validateUserLocation = async (
   const location = userLocationRepo.create(body as unknown as UserLocation);
 
   const errors = await validate(location);
+  if (errors.length > 0) {
+    return next(new HttpError(422, parseErrors(errors)));
+  }
+  next();
+};
+
+export const validateContainerData = async (
+  request: Request, response: Response, next: NextFunction
+) => {
+  const { body } = request;
+
+  const containerRepo = getRepository(ContainerPosition);
+  const containerPos = containerRepo.create(body as unknown as UserLocation);
+
+  const errors = await validate(containerPos);
   if (errors.length > 0) {
     return next(new HttpError(422, parseErrors(errors)));
   }

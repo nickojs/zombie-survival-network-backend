@@ -14,7 +14,7 @@ export class GlobalErrorHandler implements ExpressErrorMiddlewareInterface {
         case 'ER_DUP_ENTRY':
           return response.status(409).json({ message: 'Duplicated values' });
         default:
-          break;
+          return response.status(418).json({ message: 'Database error, please contact system administrator' });
       }
     }
 
