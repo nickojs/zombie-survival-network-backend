@@ -1,10 +1,11 @@
 /* eslint-disable no-console */
 import 'reflect-metadata';
-import { Action, createExpressServer, HttpError } from 'routing-controllers';
+import { Action, createExpressServer } from 'routing-controllers';
 import { createConnection, getManager } from 'typeorm';
 import * as jwt from 'jsonwebtoken';
 import { UserController } from './controllers/UserController';
 import { AuthController } from './controllers/AuthController';
+import { InventoryController } from './controllers/InventoryController';
 import { GlobalErrorHandler } from './middleware/globalErrorHandler';
 import { User } from './entity/User';
 
@@ -27,7 +28,7 @@ createConnection()
       },
       cors: true,
       defaultErrorHandler: false,
-      controllers: [UserController, AuthController],
+      controllers: [UserController, AuthController, InventoryController],
       middlewares: [GlobalErrorHandler]
     });
     server.listen(3000, () => {
