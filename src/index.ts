@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import 'reflect-metadata';
-import { Action, createExpressServer } from 'routing-controllers';
+import { Action, createExpressServer, HttpError } from 'routing-controllers';
 import { createConnection, getManager } from 'typeorm';
 import * as jwt from 'jsonwebtoken';
 import { UserController } from './controllers/UserController';
@@ -14,11 +14,16 @@ createConnection()
       currentUserChecker: async (action: Action) => {
         const token = action.request.headers.auth;
         if (!token) return null;
-        const decoded = await jwt.verify(token, process.env.secret);
-        return getManager().findOne(User, {
-          where: { id: decoded.userId },
-          relations: ['profile', 'location']
-        });
+        try {
+          const decoded = await jwt.verify(token, process.env.secret);
+          return getManager().findOne(User, {
+            where: { id: decoded.userId },
+            relations: ['profile', 'location', 'containers']
+          });
+        } catch (error) {
+          // throw new HttpError(401, error)
+          console.log(error);
+        }
       },
       cors: true,
       defaultErrorHandler: false,
