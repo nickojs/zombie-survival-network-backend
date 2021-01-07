@@ -8,6 +8,7 @@ import { UserProfile } from './Profile';
 import { UserLocation } from './Location';
 import { Flag } from './Flag';
 import { ContainerPosition } from './ContainerPosition';
+import { Item } from './Item';
 
 @Entity()
 export class User {
@@ -45,6 +46,9 @@ export class User {
   @OneToOne(() => ContainerPosition)
   @JoinColumn()
   containers: ContainerPosition;
+
+  @OneToMany(() => Item, (item) => item.user)
+  items: Item[];
 
   @BeforeInsert()
   async hashPassword() {
