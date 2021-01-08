@@ -7,6 +7,7 @@ import { User } from '../entity/User';
 import { UserProfile } from '../entity/Profile';
 import { UserLocation } from '../entity/Location';
 import { ContainerPosition } from '../entity/ContainerPosition';
+import { Item } from '../entity/Item';
 
 const parseErrors = (errors: ValidationError[]) => {
   const errs = errors.map((e) => (
@@ -70,6 +71,21 @@ export const validateContainerData = async (
   const containerPos = containerRepo.create(body as unknown as UserLocation);
 
   const errors = await validate(containerPos);
+  if (errors.length > 0) {
+    return next(new HttpError(422, parseErrors(errors)));
+  }
+  next();
+};
+
+export const validateItem = async (
+  request: Request, response: Response, next: NextFunction
+) => {
+  const { body } = request;
+
+  const itemRepo = getRepository(Item);
+  const item = itemRepo.create(body as unknown as Item);
+
+  const errors = await validate(item);
   if (errors.length > 0) {
     return next(new HttpError(422, parseErrors(errors)));
   }
