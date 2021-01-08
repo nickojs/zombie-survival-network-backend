@@ -19,7 +19,7 @@ createConnection()
           const decoded = await jwt.verify(token, process.env.secret);
           return getManager().findOne(User, {
             where: { id: decoded.userId },
-            relations: ['profile', 'location', 'containers']
+            relations: ['profile', 'location', 'containers', 'items']
           });
         } catch (error) {
           // throw new HttpError(401, error)
