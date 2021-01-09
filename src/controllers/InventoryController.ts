@@ -1,5 +1,5 @@
 import {
-  Body, CurrentUser, Get, HttpError, JsonController, Param, Post, Put, UseBefore
+  Body, CurrentUser, Delete, Get, HttpError, JsonController, Param, Post, Put, UseBefore
 } from 'routing-controllers';
 import { getRepository } from 'typeorm';
 import * as bodyParser from 'body-parser';
@@ -47,5 +47,17 @@ export class InventoryController {
     await this.userRepository.save(user);
 
     return { message: 'Saved item to inventory' };
+  }
+
+  @Delete('/:osrsId')
+  async deleteItemFromInventory(
+    @CurrentUser({ required: true }) user: User,
+    @Param('osrsId') osrsId: string
+  ) {
+    const item = user.items.find((item) => item.OSRSId === osrsId);
+    if (!item) throw new HttpError(404, 'Could not find that item');
+
+    await this.itemRepository.delete(item);
+    return { message: 'Removed item from your inventory' };
   }
 }
