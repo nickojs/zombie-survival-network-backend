@@ -13,11 +13,6 @@ export class Item {
   @Column()
   OSRSId: string;
 
-  @Min(1, { message: 'Invalid item quantity' })
-  @Max(28, { message: 'Invalid item quantity' })
-  @Column({ default: 1 })
-  qtd: number;
-
   @ManyToOne(() => User, (user) => user.items)
   user: User;
 }
