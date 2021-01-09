@@ -37,15 +37,10 @@ export class InventoryController {
     const item = this.itemRepository.create(data);
     const { items } = user;
 
-    const existingItem = items.find((i) => i.OSRSId === item.OSRSId);
-    if (existingItem) {
-      const { qtd } = existingItem;
-      if ((qtd + item.qtd) > 28) throw new HttpError(422, 'You can\'t have more than 28 items of the same type');
+    if (items.length >= 5) throw new HttpError(401, 'Your inventory is full');
 
-      existingItem.qtd += item.qtd;
-      await this.itemRepository.save(existingItem);
-      return { message: `Incremented ${existingItem.OSRSId} quantity` };
-    }
+    const existingItem = items.find((i) => i.OSRSId === item.OSRSId);
+    if (existingItem) throw new HttpError(422, 'You already own that item');
 
     await this.itemRepository.save(item);
     user.items = [...user.items, item];
