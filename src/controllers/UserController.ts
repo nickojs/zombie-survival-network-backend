@@ -39,12 +39,7 @@ export class UserController {
   async getCurrentUser(
     @CurrentUser({ required: true }) user: User
   ) {
-    const currentUser = await this.userRepository.findOne({
-      relations: ['profile', 'location', 'containers'],
-      where: { id: user.id }
-    });
-    const { password, ...rest } = currentUser;
-
+    const { password, ...rest } = user;
     return rest;
   }
 
