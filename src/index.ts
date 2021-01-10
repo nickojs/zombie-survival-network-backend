@@ -6,6 +6,7 @@ import { AuthController } from './controllers/AuthController';
 import { InventoryController } from './controllers/InventoryController';
 
 import { GlobalErrorHandler } from './middleware/globalErrorHandler';
+import './socket';
 
 createConnection()
   .then(() => {

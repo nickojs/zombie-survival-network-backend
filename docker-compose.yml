@@ -10,6 +10,7 @@ services:
       - /usr/app/node_modules
     ports:
       - "7000:3000"
+      - "7001:3001"
     env_file:
       - .env
 networks:
