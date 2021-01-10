@@ -1,7 +1,9 @@
 import {
+  Action,
   Body, CurrentUser, Get, HttpError, JsonController, Param, Post, Put, UseBefore
 } from 'routing-controllers';
-import { getRepository, Not } from 'typeorm';
+import { getManager, getRepository, Not } from 'typeorm';
+import * as jwt from 'jsonwebtoken';
 import * as bodyParser from 'body-parser';
 import { User } from '../entity/User';
 import { UserProfile } from '../entity/Profile';
@@ -159,3 +161,20 @@ export class UserController {
     return { message: `flagged user ${flagUser.id}` };
   }
 }
+
+export const currentUserChecker = async (action: Action) => {
+  const token = action.request.headers.auth;
+  if (!token) return null;
+  try {
+    const decoded = await jwt.verify(token, process.env.secret);
+    const user = await getManager().findOne(User, {
+      where: { id: decoded.userId },
+      relations: ['profile', 'location', 'containers', 'items']
+    });
+    const { password, ...rest } = user;
+    return rest;
+  } catch (error) {
+    console.log(error);
+    return error;
+  }
+};
