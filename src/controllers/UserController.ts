@@ -174,7 +174,6 @@ export const currentUserChecker = async (action: Action) => {
     const { password, ...rest } = user;
     return rest;
   } catch (error) {
-    console.log(error);
-    return error;
+    throw new HttpError(401, 'JWT expired');
   }
 };
