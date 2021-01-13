@@ -1,12 +1,14 @@
 import 'reflect-metadata';
 import { createExpressServer } from 'routing-controllers';
+import { createSocketServer } from 'socket-controllers';
 import { createConnection } from 'typeorm';
 import { UserController, currentUserChecker } from './controllers/UserController';
 import { AuthController } from './controllers/AuthController';
 import { InventoryController } from './controllers/InventoryController';
+import { TradeController } from './socket/TradeController';
 
 import { GlobalErrorHandler } from './middleware/globalErrorHandler';
-import './socket';
+// import './socket';
 
 createConnection()
   .then(() => {
@@ -20,3 +22,7 @@ createConnection()
       console.log('server started at port 3000');
     });
   }).catch((e) => console.log('connection error: \n', e));
+
+createSocketServer(3001, {
+  controllers: [TradeController]
+});
