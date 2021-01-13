@@ -1,9 +1,16 @@
 import { Socket } from 'socket.io';
+import { getRepository } from 'typeorm';
+import { Item } from '../entity/Item';
+import { User } from '../entity/User';
 import {
   ConnectedUser, OpenTradeProps, SendItemData, SocketEvents
 } from './model';
 
 export class TradeController {
+  private userRepository = getRepository(User);
+
+  private itemRepository = getRepository(Item);
+
   constructor(private socket: Socket, private connectedUsers: ConnectedUser[]) {
     this.socket = socket;
     this.connectedUsers = connectedUsers;
@@ -102,7 +109,7 @@ export class TradeController {
     }
   }
 
-  acceptTrade(data: Partial<SendItemData>) {
+  async acceptTrade(data: Partial<SendItemData>) {
     try {
       const { survivor } = data;
       const recipient = this.getConnectedUserData(survivor.id);
@@ -110,9 +117,42 @@ export class TradeController {
 
       if (recipient && sender) {
         if (recipient.acceptTrade) {
-          console.log('both accepted');
-          // method to update both user's inventories
-          // emit successful trade
+          const recipientUser = await this.userRepository.findOne({
+            relations: ['items'],
+            where: { id: recipient.userId }
+          });
+          const senderUser = await this.userRepository.findOne({
+            relations: ['items'],
+            where: { id: sender.userId }
+          });
+
+          const { items: recItems } = recipientUser;
+          const { items: senItems } = senderUser;
+
+          const {
+            sendingItems: recSendingItems,
+            receivingItems: recReceivingItems
+          } = recipient;
+
+          const {
+            sendingItems: senSendingItems,
+            receivingItems: senReceivingItems
+          } = sender;
+
+          const updateRecItems = recSendingItems.map(async (recItem) => {
+            const item = recItems.find((item) => item.OSRSId === recItem.id);
+            item.user = senderUser;
+            await this.itemRepository.save(item);
+          });
+
+          const updateSenItems = senSendingItems.map(async (recItem) => {
+            const item = senItems.find((item) => item.OSRSId === recItem.id);
+            item.user = recipientUser;
+            await this.itemRepository.save(item);
+          });
+
+          await Promise.all([updateRecItems, updateSenItems]);
+          this.socket.emit(SocketEvents.FINISH_TRADE, 'Trade successful!');
         }
         sender.acceptTrade = true;
         this.socket.to(recipient.socketId).emit(SocketEvents.RECIPIENT_ACKNOWLEDGE);
