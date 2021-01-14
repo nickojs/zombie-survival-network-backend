@@ -12,7 +12,7 @@ import { getRepository } from 'typeorm';
 import { Item } from '../entity/Item';
 import { User } from '../entity/User';
 import {
-  ConnectedUser, OpenTradeProps, SendItemData, SocketEvents
+  ConnectedUser, OpenTradeProps, SendItemData, SocketErrors, SocketEvents
 } from './model';
 
 @SocketController()
@@ -86,26 +86,30 @@ export class TradeController {
 
   @OnMessage(SocketEvents.OPEN_TRADE)
   openTrade(@ConnectedSocket() socket: Socket, @MessageBody() data: OpenTradeProps) {
-    const { survivor } = data;
-    const recipient = this.getConnectedUserData(survivor.id);
-    const sender = this.getConnectedSocketData(socket.id);
-    sender.trading = {
-      isTrading: true,
-      withWho: recipient.socketId
-    };
+    try {
+      const { survivor } = data;
+      const recipient = this.getConnectedUserData(survivor.id);
+      const sender = this.getConnectedSocketData(socket.id);
+      sender.trading = {
+        isTrading: true,
+        withWho: recipient.socketId
+      };
 
-    if (!recipient.trading.isTrading) {
-      socket.to(recipient.socketId).emit(SocketEvents.OPEN_TRADE, `${sender.userId} wants to trade`);
+      if (!recipient.trading.isTrading) {
+        socket.to(recipient.socketId).emit(SocketEvents.OPEN_TRADE, `${sender.username} wants to trade`);
+      }
+    } catch (error) {
+      socket.emit(SocketEvents.ERROR, SocketErrors.CONNECTION);
     }
   }
 
   @OnMessage(SocketEvents.SEND_ITEMS)
   sendItems(@ConnectedSocket() socket: Socket, @MessageBody() data: SendItemData) {
-    const { items, survivor } = data;
-    const recipient = this.getConnectedUserData(survivor.id);
-    const sender = this.getConnectedSocketData(socket.id);
+    try {
+      const { items, survivor } = data;
+      const recipient = this.getConnectedUserData(survivor.id);
+      const sender = this.getConnectedSocketData(socket.id);
 
-    if (recipient && sender) {
       // check if either of sender or recipient is already on a trade
       if (recipient.trading.withWho !== socket.id) {
         return socket.emit(SocketEvents.DECLINE_EXISTING_TRADE, 'This user is already on a trade');
@@ -116,19 +120,21 @@ export class TradeController {
 
         socket.to(recipient.socketId).emit(SocketEvents.DELIVER_ITEMS, items);
       }
+    } catch (error) {
+      socket.emit(SocketEvents.ERROR, SocketErrors.CONNECTION);
     }
   }
 
   @OnMessage(SocketEvents.ACCEPT_TRADE)
   async acceptTrade(@ConnectedSocket() socket: Socket, @MessageBody() data: Partial<SendItemData>) {
-    const { survivor } = data;
-    const recipient = this.getConnectedUserData(survivor.id);
-    const recipientIndex = this.getConnectedUserIndex(survivor.id);
+    try {
+      const { survivor } = data;
+      const recipient = this.getConnectedUserData(survivor.id);
+      const recipientIndex = this.getConnectedUserIndex(survivor.id);
 
-    const sender = this.getConnectedSocketData(socket.id);
-    const senderIndex = this.getConnectedSocketIndex(socket.id);
+      const sender = this.getConnectedSocketData(socket.id);
+      const senderIndex = this.getConnectedSocketIndex(socket.id);
 
-    if (recipient && sender) {
       if (recipient.acceptTrade) {
         const recipientUser = await this.userRepository.findOne({
           relations: ['items'],
@@ -178,26 +184,32 @@ export class TradeController {
       sender.acceptTrade = true;
       socket.to(recipient.socketId).emit(SocketEvents.RECIPIENT_ACKNOWLEDGE);
       socket.emit(SocketEvents.SENDER_ACKNOWLEDGE);
+    } catch (error) {
+      socket.emit(SocketEvents.ERROR, SocketErrors.TRADE);
     }
   }
 
   @OnMessage(SocketEvents.DECLINE_TRADE)
   declineTrade(@ConnectedSocket() socket: Socket, @MessageBody() data: Partial<SendItemData>) {
-    const { survivor } = data;
-    const recipient = this.getConnectedUserData(survivor.id);
-    const recipientIndex = this.getConnectedUserIndex(survivor.id);
+    try {
+      const { survivor } = data;
+      const recipient = this.getConnectedUserData(survivor.id);
+      const recipientIndex = this.getConnectedUserIndex(survivor.id);
 
-    const sender = this.getConnectedSocketData(socket.id);
-    const senderIndex = this.getConnectedSocketIndex(socket.id);
+      const sender = this.getConnectedSocketData(socket.id);
+      const senderIndex = this.getConnectedSocketIndex(socket.id);
 
-    if (recipient && sender) {
-      this.connectedUsers.splice(recipientIndex, 1, this.resetUser(recipient));
-      this.connectedUsers.splice(senderIndex, 1, this.resetUser(sender));
+      if (recipient && sender) {
+        this.connectedUsers.splice(recipientIndex, 1, this.resetUser(recipient));
+        this.connectedUsers.splice(senderIndex, 1, this.resetUser(sender));
+      }
+
+      socket.to(recipient.socketId).emit(SocketEvents.DECLINE_TRADE);
+      socket.emit(SocketEvents.DECLINE_TRADE);
+      console.log(this.connectedUsers);
+    } catch (error) {
+      socket.emit(SocketEvents.ERROR, SocketErrors.TRADE);
     }
-
-    socket.to(recipient.socketId).emit(SocketEvents.DECLINE_TRADE);
-    socket.emit(SocketEvents.DECLINE_TRADE);
-    console.log(this.connectedUsers);
   }
 
   @OnMessage(SocketEvents.REQUEST_USER_STATUS)

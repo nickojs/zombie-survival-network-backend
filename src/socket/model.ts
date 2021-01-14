@@ -14,8 +14,14 @@ export enum SocketEvents {
   SENDER_ACKNOWLEDGE = 'sender_acknowledge',
   RECIPIENT_ACKNOWLEDGE = 'recipient_acknowledge',
   REQUEST_USER_STATUS = 'request_user_status',
-  RECIPIENT_STATUS = 'recipient_status'
+  RECIPIENT_STATUS = 'recipient_status',
+  ERROR = 'error'
 }
+
+export enum SocketErrors {
+  CONNECTION = 'Couldn\'t establish connection with recipient',
+  TRADE = 'Failed to complete the trade'
+ }
 export interface ConnectedUser {
   socketId: string;
   userId: string;
