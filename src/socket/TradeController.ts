@@ -32,9 +32,10 @@ export class TradeController {
     return this.connectedUsers.find((u) => u.socketId === id);
   }
 
-  private userFactory(userId: string, socketId: string): ConnectedUser {
+  private userFactory(userId: string, username: string, socketId: string): ConnectedUser {
     return {
       userId,
+      username,
       socketId,
       trading: {
         isTrading: false,
@@ -47,13 +48,13 @@ export class TradeController {
   }
 
   resetUser(user: ConnectedUser) {
-    return this.userFactory(user.userId, user.socketId);
+    return this.userFactory(user.userId, user.username, user.socketId);
   }
 
-  saveUser(userId: string) {
-    if (userId && this.getConnectedUserIndex(userId) === -1) {
-      const user = this.userFactory(userId, this.socket.id);
-      this.connectedUsers.push(user);
+  saveUser(user: { userId: string, username: string }) {
+    if (user && this.getConnectedUserIndex(user.userId) === -1) {
+      const createUser = this.userFactory(user.userId, user.username, this.socket.id);
+      this.connectedUsers.push(createUser);
     }
   }
 
@@ -78,7 +79,7 @@ export class TradeController {
       };
 
       if (!recipient.trading.isTrading) {
-        this.socket.to(recipient.socketId).emit(SocketEvents.OPEN_TRADE, `${sender.userId} wants to trade`);
+        this.socket.to(recipient.socketId).emit(SocketEvents.OPEN_TRADE, `${sender.username} wants to trade`);
       }
     } catch (error) {
       console.log(error);
@@ -113,7 +114,10 @@ export class TradeController {
     try {
       const { survivor } = data;
       const recipient = this.getConnectedUserData(survivor.id);
+      const recipientIndex = this.getConnectedUserIndex(survivor.id);
+
       const sender = this.getConnectedSocketData(this.socket.id);
+      const senderIndex = this.getConnectedSocketIndex(this.socket.id);
 
       if (recipient && sender) {
         if (recipient.acceptTrade) {
@@ -152,9 +156,17 @@ export class TradeController {
           });
 
           await Promise.all([updateRecItems, updateSenItems]);
-          this.socket.emit(SocketEvents.FINISH_TRADE, 'Trade successful!');
+
+          // needs to reset user state after trade
+          this.connectedUsers.splice(recipientIndex, 1, this.resetUser(recipient));
+          this.connectedUsers.splice(senderIndex, 1, this.resetUser(sender));
+
+          this.socket.to(recipient.socketId).emit(SocketEvents.FINISH_TRADE, `Successful trade with ${sender.username}`);
+          this.socket.emit(SocketEvents.FINISH_TRADE, `Successful trade with ${recipient.username}`);
         }
+
         sender.acceptTrade = true;
+
         this.socket.to(recipient.socketId).emit(SocketEvents.RECIPIENT_ACKNOWLEDGE);
         this.socket.emit(SocketEvents.SENDER_ACKNOWLEDGE);
       }

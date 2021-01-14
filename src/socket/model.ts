@@ -20,6 +20,7 @@ export enum SocketEvents {
 export interface ConnectedUser {
   socketId: string;
   userId: string;
+  username: string;
   trading: {
     isTrading: boolean;
     withWho: string;

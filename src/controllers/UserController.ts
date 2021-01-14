@@ -31,7 +31,7 @@ export class UserController {
     @CurrentUser({ required: true }) user: User
   ) {
     return this.userRepository.find({
-      select: ['id', 'profile'],
+      select: ['id', 'username', 'profile'],
       relations: ['profile', 'flags'],
       where: { id: Not(user.id) }
     });
