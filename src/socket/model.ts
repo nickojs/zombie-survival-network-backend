@@ -16,7 +16,6 @@ export enum SocketEvents {
   REQUEST_USER_STATUS = 'request_user_status',
   RECIPIENT_STATUS = 'recipient_status'
 }
-
 export interface ConnectedUser {
   socketId: string;
   userId: string;
