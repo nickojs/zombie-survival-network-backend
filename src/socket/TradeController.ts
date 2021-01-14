@@ -172,6 +172,7 @@ export class TradeController {
 
         socket.to(recipient.socketId).emit(SocketEvents.FINISH_TRADE, `Successful trade with ${sender.username}`);
         socket.emit(SocketEvents.FINISH_TRADE, `Successful trade with ${recipient.username}`);
+        return;
       }
 
       sender.acceptTrade = true;
@@ -207,7 +208,10 @@ export class TradeController {
   }
 
   @OnDisconnect()
-  disconnect(@ConnectedSocket() socket: any) {
-    console.log('client disconnected: ', socket.id);
+  disconnect(@ConnectedSocket() socket: Socket) {
+    const user = this.getConnectedSocketIndex(socket.id);
+    if (user !== -1) this.connectedUsers.splice(user, 1);
+    console.log(`disconnected : ${socket.id}`);
+    console.log(this.connectedUsers);
   }
 }
