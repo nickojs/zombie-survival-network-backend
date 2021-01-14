@@ -8,49 +8,20 @@ import {
   OnMessage
 } from 'socket-controllers';
 import { Socket } from 'socket.io';
+import { getRepository } from 'typeorm';
+import { Item } from '../entity/Item';
 import { User } from '../entity/User';
-
-enum SocketEvents {
-  CONNECTION = 'connection',
-  DISCONNECT = 'disconnect',
-  SAVE_USER = 'save_user',
-  SEND_ITEMS = 'send_items',
-  DELIVER_ITEMS = 'deliver_items',
-  OPEN_TRADE = 'open_trade',
-  ACCEPT_TRADE = 'accept_trade',
-  DECLINE_TRADE = 'decline_trade',
-  DECLINE_EXISTING_TRADE = 'decline_existing_trade',
-  SENDER_ACKNOWLEDGE = 'sender_acknowledge',
-  RECIPIENT_ACKNOWLEDGE = 'recipient_acknowledge',
-  REQUEST_USER_STATUS = 'request_user_status',
-  RECIPIENT_STATUS = 'recipient_status'
-}
-
-interface ConnectedUser {
-  socketId: string;
-  userId: string;
-  trading: {
-    isTrading: boolean;
-    withWho: string;
-  };
-  acceptTrade: boolean;
-  sendingItems: any[] // OSRS items
-  receivingItems: any[] // OSRS items
-}
-
-interface SendItemData {
-  survivor: User;
-  items: Record<string, any>[]
-}
-
-interface OpenTradeProps {
-  survivor: Partial<User>;
-  sender: string;
-}
+import {
+  ConnectedUser, OpenTradeProps, SendItemData, SocketEvents
+} from './model';
 
 @SocketController()
 export class TradeController {
   private connectedUsers: ConnectedUser[] = [];
+
+  private userRepository = getRepository(User);
+
+  private itemRepository = getRepository(Item);
 
   getConnectedUserIndex(id: string) {
     return this.connectedUsers.findIndex((u) => u.userId === id);
@@ -68,10 +39,11 @@ export class TradeController {
     return this.connectedUsers.find((u) => u.socketId === id);
   }
 
-  connectedUserFactory(userId: string, socketId: string): ConnectedUser {
+  connectedUserFactory(userId: string, username: string, socketId: string): ConnectedUser {
     return {
       userId,
       socketId,
+      username,
       trading: {
         isTrading: false,
         withWho: ''
@@ -83,7 +55,7 @@ export class TradeController {
   }
 
   resetUser(user: ConnectedUser) {
-    return this.connectedUserFactory(user.userId, user.socketId);
+    return this.connectedUserFactory(user.userId, user.username, user.socketId);
   }
 
   @OnConnect()
@@ -92,10 +64,14 @@ export class TradeController {
   }
 
   @OnMessage(SocketEvents.SAVE_USER)
-  saveUser(@ConnectedSocket() socket: Socket, @MessageBody() userId: string) {
+  saveUser(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: { userId: string, username: string }
+  ) {
+    const { userId, username } = data;
     const existingUser = this.getConnectedUserIndex(userId);
     if (existingUser && existingUser === -1) {
-      const user = this.connectedUserFactory(userId, socket.id);
+      const user = this.connectedUserFactory(userId, username, socket.id);
       this.connectedUsers.push(user);
     }
     console.log(this.connectedUsers);
@@ -144,17 +120,60 @@ export class TradeController {
   }
 
   @OnMessage(SocketEvents.ACCEPT_TRADE)
-  acceptTrade(@ConnectedSocket() socket: Socket, @MessageBody() data: Partial<SendItemData>) {
+  async acceptTrade(@ConnectedSocket() socket: Socket, @MessageBody() data: Partial<SendItemData>) {
     const { survivor } = data;
     const recipient = this.getConnectedUserData(survivor.id);
+    const recipientIndex = this.getConnectedUserIndex(survivor.id);
+
     const sender = this.getConnectedSocketData(socket.id);
+    const senderIndex = this.getConnectedSocketIndex(socket.id);
 
     if (recipient && sender) {
       if (recipient.acceptTrade) {
-        console.log('both accepted');
-        // method to update both user's inventories
-        // emit successful trade
+        const recipientUser = await this.userRepository.findOne({
+          relations: ['items'],
+          where: { id: recipient.userId }
+        });
+        const senderUser = await this.userRepository.findOne({
+          relations: ['items'],
+          where: { id: sender.userId }
+        });
+
+        const { items: recItems } = recipientUser;
+        const { items: senItems } = senderUser;
+
+        const {
+          sendingItems: recSendingItems,
+          receivingItems: recReceivingItems
+        } = recipient;
+
+        const {
+          sendingItems: senSendingItems,
+          receivingItems: senReceivingItems
+        } = sender;
+
+        const updateRecItems = recSendingItems.map(async (recItem) => {
+          const item = recItems.find((item) => item.OSRSId === recItem.id);
+          item.user = senderUser;
+          await this.itemRepository.save(item);
+        });
+
+        const updateSenItems = senSendingItems.map(async (recItem) => {
+          const item = senItems.find((item) => item.OSRSId === recItem.id);
+          item.user = recipientUser;
+          await this.itemRepository.save(item);
+        });
+
+        await Promise.all([updateRecItems, updateSenItems]);
+
+        // needs to reset user state after trade
+        this.connectedUsers.splice(recipientIndex, 1, this.resetUser(recipient));
+        this.connectedUsers.splice(senderIndex, 1, this.resetUser(sender));
+
+        socket.to(recipient.socketId).emit(SocketEvents.FINISH_TRADE, `Successful trade with ${sender.username}`);
+        socket.emit(SocketEvents.FINISH_TRADE, `Successful trade with ${recipient.username}`);
       }
+
       sender.acceptTrade = true;
       socket.to(recipient.socketId).emit(SocketEvents.RECIPIENT_ACKNOWLEDGE);
       socket.emit(SocketEvents.SENDER_ACKNOWLEDGE);
